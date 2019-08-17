@@ -75,7 +75,6 @@ class ArmController:
     max_time = 3.0
     MAX_ARM = 100
     MAX_BUK = 100
-    feedback_counter = 0
 
     Xp = np.zeros((20, 20))
     Yp = np.zeros((20, 20))
@@ -150,11 +149,11 @@ class ArmController:
         kp_sc = 10
         ki_sc = .2
         kv = 2
-        MAX_SPEED = 0.1
+        MAX_SPEED = 120  # SensorValue per second
 
         pwm_temp = np.zeros((motor_con,), dtype=np.int32)
 
-        self.velocityCurrent = (self.fb - self.old_fb) / dt
+        self.velocityCurrent = (self.fb - self.old_fb) / dt  # SensorValue per second
         self.velocityTarget = (self.des_cmd - self.fb) * kv
 
         self.velocityTarget = np.where(abs(self.velocityTarget) < MAX_SPEED, self.velocityTarget, np.sign(self.velocityTarget) * MAX_SPEED)  # Constrain Error
@@ -162,7 +161,7 @@ class ArmController:
         self.error = self.des_cmd - self.fb  # Compute Error Position
         self.error = np.where(abs(self.error) < crit, 0, self.error)  # Check if converge
         self.velocityError = self.velocityTarget - self.velocityCurrent  # Sum Position Error
-        self.velocityError_sum += self.velocityError * dt # TODO : limit?
+        self.velocityError_sum += self.velocityError * dt  # TODO : limit?
 
         pwm_temp[0] = kp_sc * self.velocityError[0] + ki_sc * self.velocityError_sum[0]
         pwm_temp[1] = kp_sc * self.velocityError[1] + ki_sc * self.velocityError_sum[1]
@@ -179,9 +178,9 @@ class ArmController:
         :return:       range      0 - 1023
         :rtype:
         """
+        self.old_fb = self.fb
         self.fb = data.data
-        if self.feedback_counter and self.feedback_counter % 2 == 0: # change divide for another dt
-            self.old_fb = data.data
+
         if abs(data.data[0] - data.data[1]) > self.MAX_ARM or abs(data.data[2] - data.data[3]) > self.MAX_BUK:
             self.stop()
 
