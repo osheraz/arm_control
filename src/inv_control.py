@@ -15,6 +15,7 @@ pp = pprint.PrettyPrinter(indent=4)
 model_name = 'komodo2'
 node_name = 'arm_controller'
 pwm_to_pub = Int32MultiArray()
+velocity_to_pub = Int32MultiArray()
 motor_con = 4
 limit = 1000
 crit = 1
@@ -65,10 +66,11 @@ class ArmController:
     old_fb = np.zeros((motor_con,), dtype=np.int32)
     error = np.zeros((motor_con,), dtype=np.int32)
     error_sum = np.zeros((motor_con,), dtype=np.int32)
+
     velocityCurrent = np.zeros((motor_con,), dtype=np.int32)
     velocityTarget = np.zeros((motor_con,), dtype=np.int32)
-    velocityError = np.zeros((motor_con,), dtype=np.int32)
-    velocityError_sum = np.zeros((motor_con,), dtype=np.int32)
+    velocityError = np.zeros((motor_con,), dtype=np.float)
+    velocityError_sum = np.zeros((motor_con,), dtype=np.float)
 
     timer = 0
     check_time_start = 0
@@ -88,6 +90,7 @@ class ArmController:
         rospy.Subscriber('/arm/des_cmd', Int32MultiArray, self.update_cmd)
         rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
         rospy.Subscriber('/arm/current', Float32MultiArray, self.update_current)
+        self.velocity_pub = rospy.Publisher('/arm/velocity', Int32MultiArray, queue_size=10)
 
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
         self.Xp, self.Yp, self.delta = self.calc_working_area()
@@ -95,13 +98,15 @@ class ArmController:
         while not rospy.is_shutdown() and self.flag_stop:
 
             self.timer = rospy.get_time()
+            rospy.logdebug("Time: "+str(self.timer))
 
             self.des_cmd = np.asarray(self.des_cmd)
 
             self.des_cmd[:2] = np.clip(self.des_cmd[:2], 250, 950)  # clip the value to be between range
             self.des_cmd[2:] = np.clip(self.des_cmd[2:], 30, 450)
 
-            # self.pwm_temp = self.PID_Position()
+            #self.pwm_temp = self.PID_Position()
+
             self.pwm_temp = self.PID_Velocity()
 
             self.pwm_temp = np.clip(self.pwm_temp, -255, 255)
@@ -111,13 +116,15 @@ class ArmController:
             self.pwm_temp = self.pwm_temp.tolist()
 
             rospy.loginfo("Feedback : " + str(np.round(self.fb, 2)) + "    Pwm Applied : " + str(np.round(self.pwm_temp, 2)))
+            rospy.loginfo("Old Feedback : " + str(np.round(self.old_fb,2)))
             rospy.loginfo("Velocity : " + str(np.round(self.velocityCurrent, 2)) + "    Velocity Target : " + str(np.round(self.velocityTarget, 2)))
             rospy.loginfo("Target SC : " + str(self.des_cmd[0]) + "    Target AC : " + str(self.des_cmd[2]))
 
             self.safety_checks()
-            
+            velocity_to_pub.data = self.velocityCurrent.tolist()
             pwm_to_pub.data = self.pwm_temp
             self.motor_pub.publish(pwm_to_pub)
+            self.velocity_pub.publish(velocity_to_pub)
 
             self.rate.sleep()
 
@@ -144,24 +151,28 @@ class ArmController:
     def PID_Velocity(self):
 
         dt = 1 / 50
-        kp_ac = 20
+        kp_ac = 10
         ki_ac = .1
-        kp_sc = 10
-        ki_sc = .2
-        kv = 2
-        MAX_SPEED = 120  # SensorValue per second
+
+        kp_sc = 0.5
+        ki_sc = 0.02
+        kv = 50
+
+        MAX_SPEED = 1000  # SensorValue per second
 
         pwm_temp = np.zeros((motor_con,), dtype=np.int32)
 
-        self.velocityCurrent = (self.fb - self.old_fb) / dt  # SensorValue per second
         self.velocityTarget = (self.des_cmd - self.fb) * kv
 
         self.velocityTarget = np.where(abs(self.velocityTarget) < MAX_SPEED, self.velocityTarget, np.sign(self.velocityTarget) * MAX_SPEED)  # Constrain Error
 
         self.error = self.des_cmd - self.fb  # Compute Error Position
         self.error = np.where(abs(self.error) < crit, 0, self.error)  # Check if converge
+
         self.velocityError = self.velocityTarget - self.velocityCurrent  # Sum Position Error
-        self.velocityError_sum += self.velocityError * dt  # TODO : limit?
+
+        self.velocityError_sum += self.velocityError * dt
+        self.velocityError_sum = np.where(abs(self.velocityError_sum) < limit, self.velocityError_sum, np.sign(self.velocityError_sum) * limit)  # Constrain Error
 
         pwm_temp[0] = kp_sc * self.velocityError[0] + ki_sc * self.velocityError_sum[0]
         pwm_temp[1] = kp_sc * self.velocityError[1] + ki_sc * self.velocityError_sum[1]
@@ -178,11 +189,13 @@ class ArmController:
         :return:       range      0 - 1023
         :rtype:
         """
-        self.old_fb = self.fb
-        self.fb = data.data
+        dt = 0.02
+        self.old_fb = np.array(self.fb)
+        self.fb = np.array(data.data)
+        self.velocityCurrent = (self.fb - self.old_fb) / dt  # SensorValue per second
 
-        if abs(data.data[0] - data.data[1]) > self.MAX_ARM or abs(data.data[2] - data.data[3]) > self.MAX_BUK:
-            self.stop()
+        # if abs(data.data[0] - data.data[1]) > self.MAX_ARM or abs(data.data[2] - data.data[3]) > self.MAX_BUK:
+        #     self.stop()
 
     def update_cmd(self, data):
         """
@@ -215,24 +228,24 @@ class ArmController:
         if (self.current[2] > 1 or self.current[3] > 1) and self.flag:
             self.flag = 0
             self.check_time_start = rospy.get_time()
-        if self.fb[2] < 30 or self.fb[3] < 30:
-            self.stop()
+        # if self.fb[2] < 30 or self.fb[3] < 30:
+        #     self.stop()
 
         rospy.logdebug("time: " + str(self.timer) + "    check : " + str(self.check_time_start))
 
         if (self.timer - self.check_time_start) > self.max_time and self.flag == 0: # current limits
             if self.current[0] > 2 or self.current[1] > 2:
-                self.stop()
+                self.stop('SC motors current alert')
             elif self.current[2] > 1 or self.current[3] > 1:
-                self.stop()
+                self.stop('AC motors current alert')
             else:
                 self.check_time_start = rospy.get_time()
 
-    def stop(self):
+    def stop(self,msg):
         pwm_to_pub.data = np.zeros((motor_con,), dtype=np.int32)
         self.motor_pub.publish(pwm_to_pub)
         self.flag_stop = 0
-        rospy.loginfo('P PR PRO PROB PROBL PROBLE PROBLEMMMMMM!')
+        rospy.loginfo('Problem in:  ' + msg)
 
     def update_cmd_angle_height(self, data):
         """
