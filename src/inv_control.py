@@ -16,6 +16,8 @@ model_name = 'komodo2'
 node_name = 'arm_controller'
 pwm_to_pub = Int32MultiArray()
 velocity_to_pub = Int32MultiArray()
+arm_data = Float32MultiArray()
+
 motor_con = 4
 limit = 1000
 crit = 1
@@ -90,6 +92,8 @@ class ArmController:
         rospy.Subscriber('/arm/des_cmd', Int32MultiArray, self.update_cmd)
         rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
         rospy.Subscriber('/arm/current', Float32MultiArray, self.update_current)
+
+        self.arm_data_pub = rospy.Publisher('/arm/data', Float32MultiArray, queue_size=10)
         self.velocity_pub = rospy.Publisher('/arm/velocity', Int32MultiArray, queue_size=10)
 
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
@@ -100,19 +104,17 @@ class ArmController:
             self.timer = rospy.get_time()
             rospy.logdebug("Time: "+str(self.timer))
 
-            self.des_cmd = np.asarray(self.des_cmd)
+            self.update_arm_data()
 
+            self.des_cmd = np.asarray(self.des_cmd)
             self.des_cmd[:2] = np.clip(self.des_cmd[:2], 250, 950)  # clip the value to be between range
             self.des_cmd[2:] = np.clip(self.des_cmd[2:], 30, 450)
 
-            #self.pwm_temp = self.PID_Position()
-
-            self.pwm_temp = self.PID_Velocity()
+            self.pwm_temp = self.PID_Position()
+            # self.pwm_temp = self.PID_Velocity()
 
             self.pwm_temp = np.clip(self.pwm_temp, -255, 255)
-
             self.pwm_temp = np.where(abs(self.pwm_temp) < minPWM, 0, self.pwm_temp)
-
             self.pwm_temp = self.pwm_temp.tolist()
 
             rospy.loginfo("Feedback : " + str(np.round(self.fb, 2)) + "    Pwm Applied : " + str(np.round(self.pwm_temp, 2)))
@@ -121,6 +123,7 @@ class ArmController:
             rospy.loginfo("Target SC : " + str(self.des_cmd[0]) + "    Target AC : " + str(self.des_cmd[2]))
 
             self.safety_checks()
+
             velocity_to_pub.data = self.velocityCurrent.tolist()
             pwm_to_pub.data = self.pwm_temp
             self.motor_pub.publish(pwm_to_pub)
@@ -247,6 +250,38 @@ class ArmController:
         self.flag_stop = 0
         rospy.loginfo('Problem in:  ' + msg)
 
+    def update_arm_data(self):
+
+        xf = (self.fb[0] * 101 / 1023 + x_).astype(float)
+        yf = (self.fb[2] * 150 / 1023 + y_).astype(float)
+        # Arm mech
+
+        q = np.arcsin((xf ** 2 + h ** 2 - l1 ** 2) / (2 * xf * h))
+        # a = np.arcsin(-h + x*np.sin(q)) /(l1)
+        b_ = np.arcsin((h * np.sin(np.pi / 2 - q)) / l1) - 12.6 * np.pi / 180
+        b = b_ + 36.35 * np.pi / 180
+
+        # Bucket mech
+
+        phi = np.arccos((yf ** 2 - r ** 2 - l3 ** 2) / (-2 * r * l3))
+        gama = 87.21 * np.pi / 180 - phi
+        delta = q - b + gama
+
+        # Bucket tip location
+
+        buc_x = xf * np.cos(q) + l33 * np.cos(q - b)
+        tip_x= lp * np.cos(delta)
+        buc_z = xf * np.sin(q) + l33 * np.sin(q - b) + H
+        tip_z = lp * np.sin(delta)
+        Xp = np.add(buc_x, tip_x)
+        Zp = np.add(buc_z, tip_z)
+
+        cur_data = np.array([Xp,Zp,buc_x,buc_z])
+
+        arm_data.data = cur_data.tolist()
+
+        self.arm_data_pub.publish(arm_data)
+
     def update_cmd_angle_height(self, data):
         """
 
@@ -273,10 +308,7 @@ class ArmController:
         x_cmd = x_mm * (1023 / 101)
         y_cmd = y_mm * (1023 / 150)
 
-
         self.des_cmd = np.array([x_cmd, x_cmd, y_cmd, y_cmd]).astype(int)
-
-        #rospy.loginfo("x_cmd : " + str(self.des_cmd[0]) + "    y_cmd : " + str(self.des_cmd[2]))
 
         #if (x_cmd < 550): # TODO add collosion detection
         #    y_check = self.collision(y_cmd)

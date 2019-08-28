@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2494a05b-00fc-4441-a9e1-cf88d4395fd2" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/inv_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/inv_control.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -28,17 +29,25 @@
     <favorites_list name="arm_control" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+    <leaf>
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/inv_control.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="281">
-              <caret line="174" column="52" lean-forward="true" selection-start-line="174" selection-start-column="52" selection-end-line="174" selection-end-column="52" />
+            <state relative-caret-position="185">
+              <caret line="132" lean-forward="true" selection-start-line="132" selection-end-line="132" />
               <folding>
                 <element signature="e#23#41#0" expanded="true" />
-                <element signature="e#7539#8548#0" />
-                <element signature="e#8591#9428#0" />
-                <element signature="e#9466#9668#0" />
+                <element signature="e#3841#4631#0" />
+                <element signature="e#4670#5965#0" />
+                <element signature="e#6006#6444#0" />
+                <element signature="e#6486#6777#0" />
+                <element signature="e#6823#6972#0" />
+                <element signature="e#7012#7879#0" />
+                <element signature="e#7913#8084#0" />
+                <element signature="e#8263#9190#0" />
+                <element signature="e#8139#9148#0" />
+                <element signature="e#9191#10028#0" />
+                <element signature="e#10066#10268#0" />
               </folding>
             </state>
           </provider>
@@ -68,6 +77,8 @@
       <find>s</find>
       <find>delta</find>
       <find>feedback_counter</find>
+      <find>L</find>
+      <find>cur_data</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -87,8 +98,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="2519" />
-    <option name="y" value="293" />
+    <option name="x" value="296" />
+    <option name="y" value="156" />
     <option name="width" value="1393" />
     <option name="height" value="792" />
   </component>
@@ -108,21 +119,6 @@
             <path>
               <item name="arm_control" type="b2602c69:ProjectViewProjectNode" />
               <item name="arm_control" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="arm_control" type="b2602c69:ProjectViewProjectNode" />
-              <item name="komodo2" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="arm_control" type="b2602c69:ProjectViewProjectNode" />
-              <item name="komodo2" type="462c0819:PsiDirectoryNode" />
-              <item name="komodo2_rl_gazebo" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="arm_control" type="b2602c69:ProjectViewProjectNode" />
-              <item name="komodo2" type="462c0819:PsiDirectoryNode" />
-              <item name="komodo2_rl_gazebo" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
@@ -152,7 +148,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.checks">
+  <component name="RunManager" selected="ROS Launch.inv_control">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <module name="arm_control" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -197,9 +193,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="PC (1)" type="ros_launch_run_config_type_id" factoryName="ROS Launch" temporary="true">
-      <method v="2" />
-    </configuration>
     <configuration name="PC (2)" type="ros_launch_run_config_type_id" factoryName="ROS Launch" temporary="true">
       <method v="2" />
     </configuration>
@@ -212,21 +205,24 @@
     <configuration name="checks" type="ros_launch_run_config_type_id" factoryName="ROS Launch" temporary="true">
       <method v="2" />
     </configuration>
+    <configuration name="inv_control" type="ros_launch_run_config_type_id" factoryName="ROS Launch" temporary="true">
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Python.checks" />
-      <item itemvalue="ROS Launch.PC (1)" />
       <item itemvalue="ROS Launch.PC (2)" />
       <item itemvalue="ROS Launch.PC (3)" />
       <item itemvalue="ROS Launch.arm_angle_control" />
       <item itemvalue="ROS Launch.checks" />
+      <item itemvalue="ROS Launch.inv_control" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="ROS Launch.inv_control" />
         <item itemvalue="ROS Launch.arm_angle_control" />
         <item itemvalue="ROS Launch.checks" />
         <item itemvalue="ROS Launch.PC (3)" />
         <item itemvalue="ROS Launch.PC (2)" />
-        <item itemvalue="ROS Launch.PC (1)" />
       </list>
     </recent_temporary>
   </component>
@@ -301,11 +297,13 @@
       <workItem from="1565983618857" duration="3364000" />
       <workItem from="1566036719583" duration="1184000" />
       <workItem from="1566112253643" duration="6726000" />
+      <workItem from="1566227328615" duration="34000" />
+      <workItem from="1566981705671" duration="7135000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="121296000" />
+    <option name="totallyTimeSpent" value="128465000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -318,14 +316,13 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.44929397" visible="true" weight="0.19513543" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.44929397" visible="true" weight="0.19955777" />
       <window_info id="Structure" order="1" sideWeight="0.550706" side_tool="true" weight="0.3117914" />
       <window_info id="Favorites" order="2" sideWeight="0.50050867" side_tool="true" weight="0.14648977" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49806523" weight="0.32960325" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49806523" weight="0.32925585" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -335,7 +332,7 @@
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.50193477" side_tool="true" weight="0.32960325" />
       <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.4997236" weight="0.32925585" />
-      <window_info active="true" anchor="bottom" id="Python Console" order="12" sideWeight="0.49806523" visible="true" weight="0.29459736" />
+      <window_info anchor="bottom" id="Python Console" order="12" sideWeight="0.49806523" weight="0.2874618" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -356,16 +353,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="229">
           <caret line="3295" selection-start-line="3295" selection-end-line="3295" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/arm_angle_control.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="24" column="7" lean-forward="true" selection-start-line="24" selection-start-column="7" selection-end-line="24" selection-end-column="7" />
-          <folding>
-            <element signature="e#23#41#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -440,15 +427,33 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/inv_control.py">
+    <entry file="file://$PROJECT_DIR$/src/arm_angle_control.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="281">
-          <caret line="174" column="52" lean-forward="true" selection-start-line="174" selection-start-column="52" selection-end-line="174" selection-end-column="52" />
+        <state relative-caret-position="-2595">
+          <caret line="24" column="7" lean-forward="true" selection-start-line="24" selection-start-column="7" selection-end-line="24" selection-end-column="7" />
           <folding>
             <element signature="e#23#41#0" expanded="true" />
-            <element signature="e#7539#8548#0" />
-            <element signature="e#8591#9428#0" />
-            <element signature="e#9466#9668#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/inv_control.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="185">
+          <caret line="132" lean-forward="true" selection-start-line="132" selection-end-line="132" />
+          <folding>
+            <element signature="e#23#41#0" expanded="true" />
+            <element signature="e#3841#4631#0" />
+            <element signature="e#4670#5965#0" />
+            <element signature="e#6006#6444#0" />
+            <element signature="e#6486#6777#0" />
+            <element signature="e#6823#6972#0" />
+            <element signature="e#7012#7879#0" />
+            <element signature="e#7913#8084#0" />
+            <element signature="e#8263#9190#0" />
+            <element signature="e#8139#9148#0" />
+            <element signature="e#9191#10028#0" />
+            <element signature="e#10066#10268#0" />
           </folding>
         </state>
       </provider>
