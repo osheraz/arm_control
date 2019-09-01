@@ -33,21 +33,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/inv_control.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="185">
-              <caret line="132" lean-forward="true" selection-start-line="132" selection-end-line="132" />
+            <state relative-caret-position="443">
+              <caret line="176" column="44" lean-forward="true" selection-start-line="176" selection-start-column="44" selection-end-line="176" selection-end-column="44" />
               <folding>
                 <element signature="e#23#41#0" expanded="true" />
-                <element signature="e#3841#4631#0" />
-                <element signature="e#4670#5965#0" />
-                <element signature="e#6006#6444#0" />
-                <element signature="e#6486#6777#0" />
-                <element signature="e#6823#6972#0" />
-                <element signature="e#7012#7879#0" />
-                <element signature="e#7913#8084#0" />
-                <element signature="e#8263#9190#0" />
-                <element signature="e#8139#9148#0" />
-                <element signature="e#9191#10028#0" />
-                <element signature="e#10066#10268#0" />
+                <element signature="e#6164#6602#0" />
               </folding>
             </state>
           </provider>
@@ -109,6 +99,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -125,7 +116,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -299,11 +289,13 @@
       <workItem from="1566112253643" duration="6726000" />
       <workItem from="1566227328615" duration="34000" />
       <workItem from="1566981705671" duration="7135000" />
+      <workItem from="1567066788705" duration="26000" />
+      <workItem from="1567323685090" duration="1712000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="128465000" />
+    <option name="totallyTimeSpent" value="130203000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -316,8 +308,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.44929397" visible="true" weight="0.19955777" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.44929397" visible="true" weight="0.2039801" />
       <window_info id="Structure" order="1" sideWeight="0.550706" side_tool="true" weight="0.3117914" />
       <window_info id="Favorites" order="2" sideWeight="0.50050867" side_tool="true" weight="0.14648977" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -439,21 +432,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/inv_control.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="185">
-          <caret line="132" lean-forward="true" selection-start-line="132" selection-end-line="132" />
+        <state relative-caret-position="443">
+          <caret line="176" column="44" lean-forward="true" selection-start-line="176" selection-start-column="44" selection-end-line="176" selection-end-column="44" />
           <folding>
             <element signature="e#23#41#0" expanded="true" />
-            <element signature="e#3841#4631#0" />
-            <element signature="e#4670#5965#0" />
-            <element signature="e#6006#6444#0" />
-            <element signature="e#6486#6777#0" />
-            <element signature="e#6823#6972#0" />
-            <element signature="e#7012#7879#0" />
-            <element signature="e#7913#8084#0" />
-            <element signature="e#8263#9190#0" />
-            <element signature="e#8139#9148#0" />
-            <element signature="e#9191#10028#0" />
-            <element signature="e#10066#10268#0" />
+            <element signature="e#6164#6602#0" />
           </folding>
         </state>
       </provider>

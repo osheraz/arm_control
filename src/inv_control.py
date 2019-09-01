@@ -20,7 +20,7 @@ arm_data = Float32MultiArray()
 
 motor_con = 4
 limit = 1000
-crit = 1
+crit = 2
 dx = 30
 dy = dx
 # Motor specs: [mm]
@@ -108,7 +108,7 @@ class ArmController:
 
             self.des_cmd = np.asarray(self.des_cmd)
             self.des_cmd[:2] = np.clip(self.des_cmd[:2], 250, 950)  # clip the value to be between range
-            self.des_cmd[2:] = np.clip(self.des_cmd[2:], 30, 450)
+            self.des_cmd[2:] = np.clip(self.des_cmd[2:], 10, 450)
 
             self.pwm_temp = self.PID_Position()
             # self.pwm_temp = self.PID_Velocity()
@@ -119,7 +119,6 @@ class ArmController:
 
             rospy.loginfo("Feedback : " + str(np.round(self.fb, 2)) + "    Pwm Applied : " + str(np.round(self.pwm_temp, 2)))
             rospy.loginfo("Old Feedback : " + str(np.round(self.old_fb,2)))
-            rospy.loginfo("Velocity : " + str(np.round(self.velocityCurrent, 2)) + "    Velocity Target : " + str(np.round(self.velocityTarget, 2)))
             rospy.loginfo("Target SC : " + str(self.des_cmd[0]) + "    Target AC : " + str(self.des_cmd[2]))
 
             self.safety_checks()
@@ -181,6 +180,9 @@ class ArmController:
         pwm_temp[1] = kp_sc * self.velocityError[1] + ki_sc * self.velocityError_sum[1]
         pwm_temp[2] = kp_ac * self.velocityError[2] + ki_ac * self.velocityError_sum[2]
         pwm_temp[3] = kp_ac * self.velocityError[3] + ki_ac * self.velocityError_sum[3]
+
+        rospy.loginfo("Velocity : " + str(np.round(self.velocityCurrent, 2)) + "    Velocity Target : " + str(
+            np.round(self.velocityTarget, 2)))
 
         return pwm_temp
 
