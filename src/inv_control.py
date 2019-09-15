@@ -8,7 +8,7 @@ import time
 from rospy.numpy_msg import numpy_msg
 
 from std_msgs.msg import Int32MultiArray
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, Float32
 
 # Global Variables
 pp = pprint.PrettyPrinter(indent=4)
@@ -17,7 +17,6 @@ node_name = 'arm_controller'
 pwm_to_pub = Int32MultiArray()
 velocity_to_pub = Int32MultiArray()
 arm_data = Float32MultiArray()
-
 motor_con = 4
 limit = 1000
 crit = 2
@@ -33,10 +32,11 @@ L = 550
 l4 = 80
 l1 = 285
 r = 237
-l3 = 46
+l3 = 46  # l5
 l2 = 293
 lp = 206
 l33 = 398
+r0 = 94
 H = 330 + h
 l44 = 669.5
 minPWM = 20
@@ -74,6 +74,9 @@ class ArmController:
     velocityError = np.zeros((motor_con,), dtype=np.float)
     velocityError_sum = np.zeros((motor_con,), dtype=np.float)
 
+    raw_force = np.zeros((1,), dtype=np.float)
+    cal_force = np.zeros((1,), dtype=np.float)
+
     timer = 0
     check_time_start = 0
     max_time = 3.0
@@ -92,9 +95,11 @@ class ArmController:
         rospy.Subscriber('/arm/des_cmd', Int32MultiArray, self.update_cmd)
         rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
         rospy.Subscriber('/arm/current', Float32MultiArray, self.update_current)
+        rospy.Subscriber('/arm/force', Float32, self.update_raw_force)
 
         self.arm_data_pub = rospy.Publisher('/arm/data', Float32MultiArray, queue_size=10)
         self.velocity_pub = rospy.Publisher('/arm/velocity', Int32MultiArray, queue_size=10)
+        self.cal_force_pub = rospy.Publisher('/arm/calibrated_force', Float32, queue_size=10)
 
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
         self.Xp, self.Yp, self.delta = self.calc_working_area()
@@ -111,9 +116,17 @@ class ArmController:
             self.des_cmd[2:] = np.clip(self.des_cmd[2:], 10, 450)
 
             self.pwm_temp = self.PID_Position()
-            # self.pwm_temp = self.PID_Velocity()
+            #self.pwm_temp = self.PID_Velocity()
 
-            self.pwm_temp = np.clip(self.pwm_temp, -255, 255)
+            if self.pwm_temp[0] > 0:
+                self.pwm_temp[0] = np.clip(self.pwm_temp[0], -250, 250)
+                self.pwm_temp[1] = np.clip(self.pwm_temp[1], -255, 255)
+            else: # TODO: fix direction diffrence.
+                self.pwm_temp[0] = np.clip(self.pwm_temp[0], -240, 240)
+                self.pwm_temp[1] = np.clip(self.pwm_temp[1], -255, 255)
+
+            self.pwm_temp[2:] = np.clip(self.pwm_temp[2:], -245, 245)
+
             self.pwm_temp = np.where(abs(self.pwm_temp) < minPWM, 0, self.pwm_temp)
             self.pwm_temp = self.pwm_temp.tolist()
 
@@ -160,7 +173,7 @@ class ArmController:
         ki_sc = 0.02
         kv = 50
 
-        MAX_SPEED = 1000  # SensorValue per second
+        MAX_SPEED = 700  # SensorValue per second
 
         pwm_temp = np.zeros((motor_con,), dtype=np.int32)
 
@@ -225,6 +238,16 @@ class ArmController:
         """
         self.current = data.data
 
+    def update_raw_force(self, data):
+        """
+
+        :param data:
+        :type data:
+        :return:       range      0 - 1023
+        :rtype:
+        """
+        self.raw_force = data.data
+
     def safety_checks(self):
 
         if (self.current[0] > 2 or self.current[1] > 2) and self.flag:
@@ -266,6 +289,8 @@ class ArmController:
         # Bucket mech
 
         phi = np.arccos((yf ** 2 - r ** 2 - l3 ** 2) / (-2 * r * l3))
+        psi = np.arcsin(l3*np.sin(phi) / yf)
+        alpha = phi + psi
         gama = 87.21 * np.pi / 180 - phi
         delta = q - b + gama
 
@@ -279,10 +304,13 @@ class ArmController:
         Zp = np.add(buc_z, tip_z)
 
         cur_data = np.array([Xp,Zp,buc_x,buc_z])
-
         arm_data.data = cur_data.tolist()
-
         self.arm_data_pub.publish(arm_data)
+        rospy.loginfo(np.sin(alpha)*180/np.pi)
+
+        self.cal_force = self.raw_force * (0.5) * np.sin(alpha)
+        self.cal_force_pub.publish(self.cal_force)
+
 
     def update_cmd_angle_height(self, data):
         """

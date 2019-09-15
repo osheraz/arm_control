@@ -29,15 +29,15 @@
     <favorites_list name="arm_control" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/inv_control.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="443">
-              <caret line="176" column="44" lean-forward="true" selection-start-line="176" selection-start-column="44" selection-end-line="176" selection-end-column="44" />
+            <state relative-caret-position="204">
+              <caret line="304" lean-forward="true" selection-start-line="304" selection-end-line="304" />
               <folding>
                 <element signature="e#23#41#0" expanded="true" />
-                <element signature="e#6164#6602#0" />
+                <element signature="e#4819#6272#0" />
               </folding>
             </state>
           </provider>
@@ -89,9 +89,9 @@
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="296" />
-    <option name="y" value="156" />
+    <option name="y" value="128" />
     <option name="width" value="1393" />
-    <option name="height" value="792" />
+    <option name="height" value="820" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -291,11 +291,15 @@
       <workItem from="1566981705671" duration="7135000" />
       <workItem from="1567066788705" duration="26000" />
       <workItem from="1567323685090" duration="1712000" />
+      <workItem from="1567412492832" duration="601000" />
+      <workItem from="1567680830943" duration="401000" />
+      <workItem from="1568273324399" duration="3539000" />
+      <workItem from="1568532034122" duration="3944000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="130203000" />
+    <option name="totallyTimeSpent" value="138688000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -308,9 +312,8 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.44929397" visible="true" weight="0.2039801" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.44929397" visible="true" weight="0.21282476" />
       <window_info id="Structure" order="1" sideWeight="0.550706" side_tool="true" weight="0.3117914" />
       <window_info id="Favorites" order="2" sideWeight="0.50050867" side_tool="true" weight="0.14648977" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -325,7 +328,7 @@
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.50193477" side_tool="true" weight="0.32960325" />
       <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.4997236" weight="0.32925585" />
-      <window_info anchor="bottom" id="Python Console" order="12" sideWeight="0.49806523" weight="0.2874618" />
+      <window_info active="true" anchor="bottom" id="Python Console" order="12" sideWeight="0.49806523" visible="true" weight="0.2803262" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -432,11 +435,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/inv_control.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="443">
-          <caret line="176" column="44" lean-forward="true" selection-start-line="176" selection-start-column="44" selection-end-line="176" selection-end-column="44" />
+        <state relative-caret-position="204">
+          <caret line="304" lean-forward="true" selection-start-line="304" selection-end-line="304" />
           <folding>
             <element signature="e#23#41#0" expanded="true" />
-            <element signature="e#6164#6602#0" />
+            <element signature="e#4819#6272#0" />
           </folding>
         </state>
       </provider>
