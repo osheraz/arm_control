@@ -112,7 +112,7 @@ class ArmController:
             self.update_arm_data()
 
             self.des_cmd = np.asarray(self.des_cmd)
-            self.des_cmd[:2] = np.clip(self.des_cmd[:2], 250, 950)  # clip the value to be between range
+            self.des_cmd[:2] = np.clip(self.des_cmd[:2], 250, 780)  # 780 is the max without vision block
             self.des_cmd[2:] = np.clip(self.des_cmd[2:], 10, 450)
 
             self.pwm_temp = self.PID_Position()
@@ -120,12 +120,12 @@ class ArmController:
 
             if self.pwm_temp[0] > 0:
                 self.pwm_temp[0] = np.clip(self.pwm_temp[0], -250, 250)
-                self.pwm_temp[1] = np.clip(self.pwm_temp[1], -255, 255)
+                self.pwm_temp[1] = np.clip(self.pwm_temp[1], -250, 250) # 55
             else: # TODO: fix direction diffrence.
-                self.pwm_temp[0] = np.clip(self.pwm_temp[0], -240, 240)
-                self.pwm_temp[1] = np.clip(self.pwm_temp[1], -255, 255)
+                self.pwm_temp[0] = np.clip(self.pwm_temp[0], -250, 250) # 40
+                self.pwm_temp[1] = np.clip(self.pwm_temp[1], -250, 250) # 55
 
-            self.pwm_temp[2:] = np.clip(self.pwm_temp[2:], -245, 245)
+            self.pwm_temp[2:] = np.clip(self.pwm_temp[2:], -255, 255)
 
             self.pwm_temp = np.where(abs(self.pwm_temp) < minPWM, 0, self.pwm_temp)
             self.pwm_temp = self.pwm_temp.tolist()
@@ -306,7 +306,6 @@ class ArmController:
         cur_data = np.array([Xp,Zp,buc_x,buc_z])
         arm_data.data = cur_data.tolist()
         self.arm_data_pub.publish(arm_data)
-        rospy.loginfo(np.sin(alpha)*180/np.pi)
 
         self.cal_force = self.raw_force * (0.5) * np.sin(alpha)
         self.cal_force_pub.publish(self.cal_force)
