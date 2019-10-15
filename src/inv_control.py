@@ -75,6 +75,7 @@ class ArmController:
     velocityError_sum = np.zeros((motor_con,), dtype=np.float)
 
     raw_force = np.zeros((1,), dtype=np.float)
+    old_raw_force = np.zeros((1,), dtype=np.float)
     cal_force = np.zeros((1,), dtype=np.float)
 
     timer = 0
@@ -246,7 +247,10 @@ class ArmController:
         :return:       range      0 - 1023
         :rtype:
         """
+        self.old_raw_force = np.array(self.raw_force)
         self.raw_force = data.data
+        if abs(self.raw_force - self.old_raw_force) > 5:
+            self.raw_force = self.old_raw_force
 
     def safety_checks(self):
 
@@ -307,8 +311,9 @@ class ArmController:
         arm_data.data = cur_data.tolist()
         self.arm_data_pub.publish(arm_data)
 
-        self.cal_force = self.raw_force * (0.5) * np.sin(alpha)
+        self.cal_force = self.raw_force * (0.5) * np.sin(alpha) * 1.96
         self.cal_force_pub.publish(self.cal_force)
+        # rospy.loginfo(self.cal_force)
 
 
     def update_cmd_angle_height(self, data):
