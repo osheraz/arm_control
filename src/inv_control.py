@@ -37,6 +37,7 @@ l2 = 293
 lp = 206
 l33 = 398
 r0 = 94
+rb = 50
 H = 330 + h
 l44 = 669.5
 minPWM = 20
@@ -311,9 +312,10 @@ class ArmController:
         arm_data.data = cur_data.tolist()
         self.arm_data_pub.publish(arm_data)
 
-        self.cal_force = self.raw_force * (0.5) * np.sin(alpha) * 1.96
+        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0*np.cos(delta)))
         self.cal_force_pub.publish(self.cal_force)
-        # rospy.loginfo(self.cal_force)
+        rospy.loginfo("Raw Force : " + str(np.round(self.raw_force, 2)) + "     Force : " + str(np.round(self.cal_force, 2)) + "    Alpha : " + str(np.round(alpha, 2))+ "    Delta: " + str(np.round(delta, 2)))
+
 
 
     def update_cmd_angle_height(self, data):
