@@ -78,6 +78,7 @@ class ArmController:
     raw_force = np.zeros((1,), dtype=np.float)
     old_raw_force = np.zeros((1,), dtype=np.float)
     cal_force = np.zeros((1,), dtype=np.float)
+    cal_torque = np.zeros((1,), dtype=np.float)
 
     timer = 0
     check_time_start = 0
@@ -102,6 +103,7 @@ class ArmController:
         self.arm_data_pub = rospy.Publisher('/arm/data', Float32MultiArray, queue_size=10)
         self.velocity_pub = rospy.Publisher('/arm/velocity', Int32MultiArray, queue_size=10)
         self.cal_force_pub = rospy.Publisher('/arm/calibrated_force', Float32, queue_size=10)
+        self.cal_torque_pub = rospy.Publisher('/arm/calibrated_torque', Float32, queue_size=10)
 
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
         self.Xp, self.Yp, self.delta = self.calc_working_area()
@@ -267,7 +269,7 @@ class ArmController:
         rospy.logdebug("time: " + str(self.timer) + "    check : " + str(self.check_time_start))
 
         if (self.timer - self.check_time_start) > self.max_time and self.flag == 0: # current limits
-            if self.current[0] > 2 or self.current[1] > 2:
+            if self.current[0] > 3 or self.current[1] > 3:
                 self.stop('SC motors current alert')
             elif self.current[2] > 1 or self.current[3] > 1:
                 self.stop('AC motors current alert')
@@ -312,9 +314,14 @@ class ArmController:
         arm_data.data = cur_data.tolist()
         self.arm_data_pub.publish(arm_data)
 
-        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0*np.cos(delta)))
+        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0*np.cos(delta))) # on the bucket
+        self.cal_torque = self.raw_force * np.sin(alpha) * 1.96 * rb / 1000  # on the arm
         self.cal_force_pub.publish(self.cal_force)
-        rospy.loginfo("Raw Force : " + str(np.round(self.raw_force, 2)) + "     Force : " + str(np.round(self.cal_force, 2)) + "    Alpha : " + str(np.round(alpha, 2))+ "    Delta: " + str(np.round(delta, 2)))
+        self.cal_torque_pub.publish(self.cal_torque)
+
+        rospy.loginfo("Raw Force : " + str(np.round(self.raw_force, 2)) + "     Force : " + str(np.round(self.cal_force, 2)) +
+                      "     Torque : " + str(np.round(self.cal_torque, 2)) + "    Alpha : " + str(np.round(alpha, 2))+ "    Delta: " + str(np.round(delta, 2)))
+
 
 
 
