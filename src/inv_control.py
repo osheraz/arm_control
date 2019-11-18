@@ -75,6 +75,7 @@ class ArmController:
     velocityError = np.zeros((motor_con,), dtype=np.float)
     velocityError_sum = np.zeros((motor_con,), dtype=np.float)
 
+    measured_force = np.zeros((1,), dtype=np.float)
     raw_force = np.zeros((1,), dtype=np.float)
     old_raw_force = np.zeros((1,), dtype=np.float)
     cal_force = np.zeros((1,), dtype=np.float)
@@ -103,6 +104,7 @@ class ArmController:
         self.arm_data_pub = rospy.Publisher('/arm/data', Float32MultiArray, queue_size=10)
         self.velocity_pub = rospy.Publisher('/arm/velocity', Int32MultiArray, queue_size=10)
         self.cal_force_pub = rospy.Publisher('/arm/calibrated_force', Float32, queue_size=10)
+        self.measured_force_pub = rospy.Publisher('/arm/measured_force', Float32, queue_size=10)
         self.cal_torque_pub = rospy.Publisher('/arm/calibrated_torque', Float32, queue_size=10)
 
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
@@ -314,8 +316,10 @@ class ArmController:
         arm_data.data = cur_data.tolist()
         self.arm_data_pub.publish(arm_data)
 
-        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0*np.cos(delta))) # on the bucket
+        self.measured_force = self.raw_force
+        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0*np.cos(delta)))  # on the bucket
         self.cal_torque = self.raw_force * np.sin(alpha) * 1.96 * rb / 1000  # on the arm
+        self.measured_force_pub.publish(self.measured_force)
         self.cal_force_pub.publish(self.cal_force)
         self.cal_torque_pub.publish(self.cal_torque)
 
