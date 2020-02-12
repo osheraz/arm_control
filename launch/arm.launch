@@ -3,4 +3,7 @@
     <param name="port"              type="string"               value="/dev/ttyACM1"/>
     <param name="baud"              type="int"                  value="115200"/>
     </node>
+
+    <node pkg="arm_control" type="command_to_joint_state.py" name="arm_command_to_joint_state" output="screen"/>
+
 </launch>

@@ -118,7 +118,7 @@ class ArmController:
             self.update_arm_data()
 
             self.des_cmd = np.asarray(self.des_cmd)
-            self.des_cmd[:2] = np.clip(self.des_cmd[:2], 250, 780)  # 780 is the max without vision block
+            self.des_cmd[:2] = np.clip(self.des_cmd[:2], 300, 780)  # 780 is the max without vision block
             self.des_cmd[2:] = np.clip(self.des_cmd[2:], 10, 450)
 
             self.pwm_temp = self.PID_Position()
@@ -155,6 +155,8 @@ class ArmController:
         ki_ac = .1
         kp_sc = 10
         ki_sc = .2
+        k_diff_sc_A = -8
+        k_diff_sc_B = -12
         pwm_temp = np.zeros((motor_con,), dtype=np.int32)
 
         self.error = self.des_cmd - self.fb  # Compute Error Position
