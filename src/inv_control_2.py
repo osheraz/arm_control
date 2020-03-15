@@ -163,12 +163,12 @@ class ArmController:
         self.error = np.where(abs(self.error) < crit, 0, self.error)  # Check if converge
         self.error_sum += self.error  # Sum Position Error
         self.error_sum = np.where(abs(self.error_sum) < limit, self.error_sum, np.sign(self.error_sum) * limit)  # Constrain Error
-        self.sync_errors = calc_sync_errors()
-        rospy.loginfo("sync_error[0] : " + str(self.sync_errors[0]) + "sync_error[1] : " + str(self.sync_errors[1])
-                      + "sync_error[2] : " + str(self.sync_errors[2]) + "sync_error[3] : " + str(self.sync_errors[3]))
+        self.sync_errors = self.calc_sync_errors()
+        rospy.loginfo("sync_error[0] : " + str(self.sync_errors[0]) + " ,sync_error[1] : " + str(self.sync_errors[1])
+                      + " ,sync_error[2] : " + str(self.sync_errors[2]) + " ,sync_error[3] : " + str(self.sync_errors[3]))
 
-        pwm_temp[0] = self.kp_sc * self.error[0] + self.ki_sc * self.error_sum[0] + self.kp_s_sc * sync_error[0]
-        pwm_temp[1] = self.kp_sc * self.error[1] + self.ki_sc * self.error_sum[1] + self.kp_s_sc * sync_error[1]
+        pwm_temp[0] = self.kp_sc * self.error[0] + self.ki_sc * self.error_sum[0] + self.kp_s_sc * self.sync_errors[0]
+        pwm_temp[1] = self.kp_sc * self.error[1] + self.ki_sc * self.error_sum[1] + self.kp_s_sc * self.sync_errors[1]
         pwm_temp[2] = self.kp_ac * self.error[2] + self.ki_ac * self.error_sum[2]
         pwm_temp[3] = self.kp_ac * self.error[3] + self.ki_ac * self.error_sum[3]
 
@@ -180,7 +180,7 @@ class ArmController:
         sync_errors[::2] = self.fb[::2] - self.fb[1::2]
         sync_errors[1::2] = self.fb[1::2] - self.fb[::2]
         # Slow down the nearest actuator (The error sign present the direction of movement)
-        return -1 * np.sign(error) * np.abs(sync_errors) * self.calc_the_nearest_actuator()
+        return -1 * np.sign(self.error) * np.abs(sync_errors) * self.calc_the_nearest_actuator()
 
     # Return bool array according to the nearest actuator to the target position.
     def calc_the_nearest_actuator(self):
