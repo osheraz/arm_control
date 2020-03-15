@@ -45,6 +45,7 @@ minPWM = 20
 
 
 
+
 def main():
     ArmController()
     rospy.spin()
@@ -117,6 +118,8 @@ class ArmController:
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
         self.Xp, self.Yp, self.delta = self.calc_working_area()
 
+        rospy.on_shutdown(self.stop)
+
         while not rospy.is_shutdown() and self.flag_stop:
 
             self.timer = rospy.get_time()
@@ -131,9 +134,8 @@ class ArmController:
             self.pwm_temp = self.PID_Position()
             # self.pwm_temp = self.PID_Velocity()
 
-            # TODO: To consider to extend to error sum limit in order to reach max PWM in small error.
-            # TODO: To reset the error sum value when target position change.
-            # TODO: To calibrate the kp_s_sc - proportional const for sync error
+            # TODO: To Add derivative controller and to calibrate PID const
+            # TODO: To consider simple control on PWM (255 or 0)
             # Map potentiometer values to pwm
             sc_potentiometer_value_limit = (780 - 300) * self.kp_sc + limit * self.ki_sc
             ac_potentiometer_value_limit = (450 - 10) * self.kp_ac + limit * self.ki_ac
