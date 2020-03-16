@@ -6,7 +6,6 @@ import rospy
 import math
 import time
 from rospy.numpy_msg import numpy_msg
-
 from std_msgs.msg import Int32MultiArray
 from std_msgs.msg import Float32MultiArray, Float32
 
@@ -43,9 +42,6 @@ l44 = 669.5
 minPWM = 20
 
 
-
-
-
 def main():
     ArmController()
     rospy.spin()
@@ -56,7 +52,6 @@ def clamp(x, minimum, maximum):
 
 
 class ArmController:
-
     rospy.init_node(node_name)
     flag = 1
     flag_stop = 1
@@ -102,7 +97,6 @@ class ArmController:
     kp_s_sc = 1
 
     def __init__(self):
-
         rospy.Subscriber('/arm/angle_height', Int32MultiArray, self.update_cmd_angle_height)
         rospy.Subscriber('/arm/des_cmd', Int32MultiArray, self.update_cmd)
         rospy.Subscriber('/arm/pot_fb', Int32MultiArray, self.update_fb)
@@ -114,7 +108,6 @@ class ArmController:
         self.cal_force_pub = rospy.Publisher('/arm/calibrated_force', Float32, queue_size=10)
         self.measured_force_pub = rospy.Publisher('/arm/measured_force', Float32, queue_size=10)
         self.cal_torque_pub = rospy.Publisher('/arm/calibrated_torque', Float32, queue_size=10)
-
         self.motor_pub = rospy.Publisher('/arm/motor_cmd', Int32MultiArray, queue_size=10)
         self.Xp, self.Yp, self.delta = self.calc_working_area()
 
@@ -126,34 +119,14 @@ class ArmController:
             rospy.logdebug("Time: "+str(self.timer))
 
             self.update_arm_data()
-
-            self.des_cmd = np.asarray(self.des_cmd)
-            self.des_cmd[:2] = np.clip(self.des_cmd[:2], 300, 780)  # 780 is the max without vision block
-            self.des_cmd[2:] = np.clip(self.des_cmd[2:], 10, 450)
-
             self.pwm_temp = self.PID_Position()
-            # self.pwm_temp = self.PID_Velocity()
 
             # TODO: To Add derivative controller and to calibrate PID const
             # TODO: To consider simple control on PWM (255 or 0)
-            # Map potentiometer values to pwm
-            sc_potentiometer_value_limit = (780 - 300) * self.kp_sc + limit * self.ki_sc
-            ac_potentiometer_value_limit = (450 - 10) * self.kp_ac + limit * self.ki_ac
-            self.pwm_temp[:2] = self.map_range([-sc_potentiometer_value_limit, sc_potentiometer_value_limit], [-255, 255], self.pwm_temp[:2])
-            self.pwm_temp[2:] = self.map_range([-ac_potentiometer_value_limit, ac_potentiometer_value_limit], [-255, 255], self.pwm_temp[2:])
-            self.pwm_temp = np.clip(self.pwm_temp, -255, 255)
-
-            self.pwm_temp = np.where(abs(self.pwm_temp) < minPWM, 0, self.pwm_temp)
-            self.pwm_temp = self.pwm_temp.tolist()
-
-            rospy.loginfo("Feedback : " + str(np.round(self.fb, 2)) + "    Pwm Applied : " + str(np.round(self.pwm_temp, 2)))
-            rospy.loginfo("Old Feedback : " + str(np.round(self.old_fb,2)))
-            rospy.loginfo("Target SC : " + str(self.des_cmd[0]) + "    Target AC : " + str(self.des_cmd[2]))
 
             self.safety_checks()
-
             velocity_to_pub.data = self.velocityCurrent.tolist()
-            pwm_to_pub.data = self.pwm_temp
+            pwm_to_pub.data = self.pwm_temp.tolist()
             self.motor_pub.publish(pwm_to_pub)
             self.velocity_pub.publish(velocity_to_pub)
 
@@ -174,6 +147,13 @@ class ArmController:
         pwm_temp[2] = self.kp_ac * self.error[2] + self.ki_ac * self.error_sum[2]
         pwm_temp[3] = self.kp_ac * self.error[3] + self.ki_ac * self.error_sum[3]
 
+        # Map potentiometer values to pwm
+        sc_potentiometer_value_limit = (780 - 300) * self.kp_sc + limit * self.ki_sc
+        ac_potentiometer_value_limit = (450 - 10) * self.kp_ac + limit * self.ki_ac
+        self.pwm_temp[:2] = self.map_range([-sc_potentiometer_value_limit, sc_potentiometer_value_limit], [-255, 255], self.pwm_temp[:2])
+        self.pwm_temp[2:] = self.map_range([-ac_potentiometer_value_limit, ac_potentiometer_value_limit], [-255, 255], self.pwm_temp[2:])
+        self.pwm_temp = np.clip(self.pwm_temp, -255, 255)
+        self.pwm_temp = np.where(abs(self.pwm_temp) < minPWM, 0, self.pwm_temp)
         return pwm_temp
 
     def calc_sync_errors(self):
@@ -244,15 +224,13 @@ class ArmController:
         #     self.stop()
 
     def update_cmd(self, data):
-        """
-
-        :param data:
-        :type data:
-        :return:       range      0 - 1023
-        :rtype:
-        """
-        if (data.data[0] == data.data[1] and data.data[2] == data.data[3]):
-            self.des_cmd = data.data
+        if self.des_cmd == np.asarray(data.data):  # Test if new command arrived.
+            return
+        if data.data[0] == data.data[1] and data.data[2] == data.data[3]:
+            self.des_cmd = np.asarray(data.data)
+            self.des_cmd[:2] = np.clip(self.des_cmd[:2], 300, 780)  # 780 is the max without vision block
+            self.des_cmd[2:] = np.clip(self.des_cmd[2:], 10, 450)
+            self.error_sum = 0  # Reset error sum when new command arrived.
         else:
             rospy.loginfo("DONT BREAK MY ARM!")
 
@@ -294,17 +272,17 @@ class ArmController:
 
         if (self.timer - self.check_time_start) > self.max_time and self.flag == 0: # current limits
             if self.current[0] > 3 or self.current[1] > 3:
-                self.stop('SC motors current alert')
+                self.stop('Problem in: SC motors current alert')
             elif self.current[2] > 1 or self.current[3] > 1:
-                self.stop('AC motors current alert')
+                self.stop('Problem in: AC motors current alert')
             else:
                 self.check_time_start = rospy.get_time()
 
-    def stop(self,msg):
+    def stop(self, msg='Shutdown motors!'):
         pwm_to_pub.data = np.zeros((motor_con,), dtype=np.int32)
         self.motor_pub.publish(pwm_to_pub)
         self.flag_stop = 0
-        rospy.loginfo('Problem in:  ' + msg)
+        rospy.loginfo(msg)
 
     def update_arm_data(self):
 
@@ -347,9 +325,6 @@ class ArmController:
 
         rospy.loginfo("Raw Force : " + str(np.round(self.raw_force, 2)) + "     Force : " + str(np.round(self.cal_force, 2)) +
                       "     Torque : " + str(np.round(self.cal_torque, 2)) + "    Alpha : " + str(np.round(alpha, 2))+ "    Delta: " + str(np.round(delta, 2)))
-
-
-
 
     def update_cmd_angle_height(self, data):
         """
@@ -427,7 +402,8 @@ class ArmController:
         """
         return (1.092 * x - 171)
 
-    def map_range(self, a, b, s):
+    @staticmethod
+    def map_range(a, b, s):
         (a1, a2), (b1, b2) = a, b
         return b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
 
