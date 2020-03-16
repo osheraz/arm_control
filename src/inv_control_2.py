@@ -18,7 +18,7 @@ velocity_to_pub = Int32MultiArray()
 arm_data = Float32MultiArray()
 motor_con = 4
 limit = 1000
-crit = 2
+crit = 10
 dx = 30
 dy = dx
 # Motor specs: [mm]
@@ -58,7 +58,7 @@ class ArmController:
     Hz = 50
     rate = rospy.Rate(Hz)
 
-    des_cmd = np.array([350, 350, 120, 120], dtype=np.int32)
+    des_cmd = np.zeros((motor_con,), dtype=np.int32)
     current = np.array([0, 0, 0, 0], dtype=np.float)
     pwm_temp = np.zeros((motor_con,), dtype=np.int32)
     fb = np.zeros((motor_con,), dtype=np.int32)
@@ -88,14 +88,6 @@ class ArmController:
     Yp = np.zeros((20, 20))
     delta = np.zeros((20, 20))
 
-    kp_ac = 20
-    ki_ac = .1
-    kp_sc = 10
-    ki_sc = .2
-    k_diff_sc_A = -8
-    k_diff_sc_B = -12
-    kp_s_sc = 1
-
     def __init__(self):
         rospy.Subscriber('/arm/angle_height', Int32MultiArray, self.update_cmd_angle_height)
         rospy.Subscriber('/arm/des_cmd', Int32MultiArray, self.update_cmd)
@@ -114,15 +106,16 @@ class ArmController:
         rospy.on_shutdown(self.stop)
 
         while not rospy.is_shutdown() and self.flag_stop:
-
             self.timer = rospy.get_time()
-            rospy.logdebug("Time: "+str(self.timer))
+            rospy.logdebug("Time: " + str(self.timer))
 
             self.update_arm_data()
-            self.pwm_temp = self.PID_Position()
-
-            # TODO: To Add derivative controller and to calibrate PID const
-            # TODO: To consider simple control on PWM (255 or 0)
+            self.compute_position_errors()
+            #self.pwm_temp = np.zeros((motor_con,), dtype=np.int32) if np.all(self.error < crit) else self.PID_Position()
+            self.pwm_temp = np.zeros((motor_con,), dtype=np.int32) if np.all(self.error < crit) else self.max_pwm_position_control()
+            rospy.loginfo("Feedback: " + str(np.round(self.fb, 2)) + " Pwm Applied: "
+                          + str(np.round(self.pwm_temp, 2)) + " errors: " + str(np.round(self.error, 2))
+                          + " sync_errors: " + str(np.round(self.sync_errors, 2)))
 
             self.safety_checks()
             velocity_to_pub.data = self.velocityCurrent.tolist()
@@ -132,29 +125,39 @@ class ArmController:
 
             self.rate.sleep()
 
-    def PID_Position(self):
-        pwm_temp = np.zeros((motor_con,), dtype=np.int32)
+    def compute_position_errors(self):
         self.error = self.des_cmd - self.fb  # Compute Error Position
-        self.error = np.where(abs(self.error) < crit, 0, self.error)  # Check if converge
         self.error_sum += self.error  # Sum Position Error
-        self.error_sum = np.where(abs(self.error_sum) < limit, self.error_sum, np.sign(self.error_sum) * limit)  # Constrain Error
+        # Constrain Error
+        self.error_sum = np.where(abs(self.error_sum) < limit, self.error_sum, np.sign(self.error_sum) * limit)
         self.sync_errors = self.calc_sync_errors()
-        rospy.loginfo("sync_error[0] : " + str(self.sync_errors[0]) + " ,sync_error[1] : " + str(self.sync_errors[1])
-                      + " ,sync_error[2] : " + str(self.sync_errors[2]) + " ,sync_error[3] : " + str(self.sync_errors[3]))
 
-        pwm_temp[0] = self.kp_sc * self.error[0] + self.ki_sc * self.error_sum[0] + self.kp_s_sc * self.sync_errors[0]
-        pwm_temp[1] = self.kp_sc * self.error[1] + self.ki_sc * self.error_sum[1] + self.kp_s_sc * self.sync_errors[1]
-        pwm_temp[2] = self.kp_ac * self.error[2] + self.ki_ac * self.error_sum[2]
-        pwm_temp[3] = self.kp_ac * self.error[3] + self.ki_ac * self.error_sum[3]
+    def PID_Position(self):
+        kp_ac = 20
+        ki_ac = .1
+        kp_sc = 10
+        ki_sc = .2
+        kp_s_sc = 1
+
+        pwm_temp = np.zeros((motor_con,), dtype=np.int32)
+        pwm_temp[0] = kp_sc * self.error[0] + ki_sc * self.error_sum[0] + kp_s_sc * self.sync_errors[0]
+        pwm_temp[1] = kp_sc * self.error[1] + ki_sc * self.error_sum[1] + kp_s_sc * self.sync_errors[1]
+        pwm_temp[2] = kp_ac * self.error[2] + ki_ac * self.error_sum[2]
+        pwm_temp[3] = kp_ac * self.error[3] + ki_ac * self.error_sum[3]
 
         # Map potentiometer values to pwm
-        sc_potentiometer_value_limit = (780 - 300) * self.kp_sc + limit * self.ki_sc
-        ac_potentiometer_value_limit = (450 - 10) * self.kp_ac + limit * self.ki_ac
-        self.pwm_temp[:2] = self.map_range([-sc_potentiometer_value_limit, sc_potentiometer_value_limit], [-255, 255], self.pwm_temp[:2])
-        self.pwm_temp[2:] = self.map_range([-ac_potentiometer_value_limit, ac_potentiometer_value_limit], [-255, 255], self.pwm_temp[2:])
-        self.pwm_temp = np.clip(self.pwm_temp, -255, 255)
-        self.pwm_temp = np.where(abs(self.pwm_temp) < minPWM, 0, self.pwm_temp)
+        sc_potentiometer_value_limit = (780 - 300) * kp_sc + limit * ki_sc
+        ac_potentiometer_value_limit = (450 - 10) * kp_ac + limit * ki_ac
+        pwm_temp[:2] = self.map_range([-sc_potentiometer_value_limit, sc_potentiometer_value_limit], [-255, 255], pwm_temp[:2])
+        pwm_temp[2:] = self.map_range([-ac_potentiometer_value_limit, ac_potentiometer_value_limit], [-255, 255], pwm_temp[2:])
+        pwm_temp = np.clip(pwm_temp, -255, 255)
+        #pwm_temp = np.where(abs(pwm_temp) < minPWM, 0, pwm_temp)
         return pwm_temp
+
+    def max_pwm_position_control(self):
+        kp = 10
+        pwm = 255 * np.sign(self.error) + kp * self.sync_errors
+        return np.clip(pwm, -255, 255)
 
     def calc_sync_errors(self):
         sync_errors = np.zeros((motor_con,), dtype=np.int32)
@@ -187,7 +190,8 @@ class ArmController:
 
         self.velocityTarget = (self.des_cmd - self.fb) * kv
 
-        self.velocityTarget = np.where(abs(self.velocityTarget) < MAX_SPEED, self.velocityTarget, np.sign(self.velocityTarget) * MAX_SPEED)  # Constrain Error
+        self.velocityTarget = np.where(abs(self.velocityTarget) < MAX_SPEED, self.velocityTarget,
+                                       np.sign(self.velocityTarget) * MAX_SPEED)  # Constrain Error
 
         self.error = self.des_cmd - self.fb  # Compute Error Position
         self.error = np.where(abs(self.error) < crit, 0, self.error)  # Check if converge
@@ -195,7 +199,8 @@ class ArmController:
         self.velocityError = self.velocityTarget - self.velocityCurrent  # Sum Position Error
 
         self.velocityError_sum += self.velocityError * dt
-        self.velocityError_sum = np.where(abs(self.velocityError_sum) < limit, self.velocityError_sum, np.sign(self.velocityError_sum) * limit)  # Constrain Error
+        self.velocityError_sum = np.where(abs(self.velocityError_sum) < limit, self.velocityError_sum,
+                                          np.sign(self.velocityError_sum) * limit)  # Constrain Error
 
         pwm_temp[0] = kp_sc * self.velocityError[0] + ki_sc * self.velocityError_sum[0]
         pwm_temp[1] = kp_sc * self.velocityError[1] + ki_sc * self.velocityError_sum[1]
@@ -224,7 +229,7 @@ class ArmController:
         #     self.stop()
 
     def update_cmd(self, data):
-        if self.des_cmd == np.asarray(data.data):  # Test if new command arrived.
+        if np.all(self.des_cmd == np.asarray(data.data)):  # Test if new command arrived.
             return
         if data.data[0] == data.data[1] and data.data[2] == data.data[3]:
             self.des_cmd = np.asarray(data.data)
@@ -270,7 +275,7 @@ class ArmController:
 
         rospy.logdebug("time: " + str(self.timer) + "    check : " + str(self.check_time_start))
 
-        if (self.timer - self.check_time_start) > self.max_time and self.flag == 0: # current limits
+        if (self.timer - self.check_time_start) > self.max_time and self.flag == 0:  # current limits
             if self.current[0] > 3 or self.current[1] > 3:
                 self.stop('Problem in: SC motors current alert')
             elif self.current[2] > 1 or self.current[3] > 1:
@@ -298,7 +303,7 @@ class ArmController:
         # Bucket mech
 
         phi = np.arccos((yf ** 2 - r ** 2 - l3 ** 2) / (-2 * r * l3))
-        psi = np.arcsin(l3*np.sin(phi) / yf)
+        psi = np.arcsin(l3 * np.sin(phi) / yf)
         alpha = phi + psi
         gama = 87.21 * np.pi / 180 - phi
         delta = q - b + gama
@@ -306,25 +311,27 @@ class ArmController:
         # Bucket tip location
 
         buc_x = xf * np.cos(q) + l33 * np.cos(q - b)
-        tip_x= lp * np.cos(delta)
+        tip_x = lp * np.cos(delta)
         buc_z = xf * np.sin(q) + l33 * np.sin(q - b) + H
         tip_z = lp * np.sin(delta)
         Xp = np.add(buc_x, tip_x)
         Zp = np.add(buc_z, tip_z)
 
-        cur_data = np.array([Xp,Zp,buc_x,buc_z])
+        cur_data = np.array([Xp, Zp, buc_x, buc_z])
         arm_data.data = cur_data.tolist()
         self.arm_data_pub.publish(arm_data)
 
         self.measured_force = self.raw_force
-        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0*np.cos(delta)))  # on the bucket
+        self.cal_force = self.raw_force * np.sin(alpha) * 1.96 * (rb / (r0 * np.cos(delta)))  # on the bucket
         self.cal_torque = self.raw_force * np.sin(alpha) * 1.96 * rb / 1000  # on the arm
         self.measured_force_pub.publish(self.measured_force)
         self.cal_force_pub.publish(self.cal_force)
         self.cal_torque_pub.publish(self.cal_torque)
 
-        rospy.loginfo("Raw Force : " + str(np.round(self.raw_force, 2)) + "     Force : " + str(np.round(self.cal_force, 2)) +
-                      "     Torque : " + str(np.round(self.cal_torque, 2)) + "    Alpha : " + str(np.round(alpha, 2))+ "    Delta: " + str(np.round(delta, 2)))
+        rospy.loginfo(
+            "Raw Force : " + str(np.round(self.raw_force, 2)) + "     Force : " + str(np.round(self.cal_force, 2)) +
+            "     Torque : " + str(np.round(self.cal_torque, 2)) + "    Alpha : " + str(
+                np.round(alpha, 2)) + "    Delta: " + str(np.round(delta, 2)))
 
     def update_cmd_angle_height(self, data):
         """
@@ -337,14 +344,12 @@ class ArmController:
         angle = data.data[0] * np.pi / 180
         height = data.data[1] - H
 
-
         PSI = np.arcsin((height) / (l44))
         alpha = np.arccos((l44 ** 2 + l1 ** 2 - l33 ** 2) / (2 * l44 * l1)) + PSI
         PHI = 77.31 * np.pi / 180 - angle - abs(PSI)
 
         x_c = np.sqrt(h ** 2 + l1 ** 2 + 2 * h * l1 * np.sin(alpha))
         y_c = np.sqrt(r ** 2 + l3 ** 2 - 2 * r * l3 * np.cos(PHI))
-
 
         x_mm = (x_c - x_)
         y_mm = (y_c - y_)
@@ -354,7 +359,7 @@ class ArmController:
 
         self.des_cmd = np.array([x_cmd, x_cmd, y_cmd, y_cmd]).astype(int)
 
-        #if (x_cmd < 550): # TODO add collosion detection
+        # if (x_cmd < 550): # TODO add collosion detection
         #    y_check = self.collision(y_cmd)
         #    if y_cmd > y_check:
         #        y_cmd = y_check
