@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+import csv
 import pprint
 import rospy
 import math
@@ -79,6 +80,7 @@ class ArmController:
     cal_force = np.zeros((1,), dtype=np.float)
     cal_torque = np.zeros((1,), dtype=np.float)
 
+    start_time = 0
     timer = 0
     check_time_start = 0
     max_time = 3.0
@@ -106,6 +108,7 @@ class ArmController:
         self.Xp, self.Yp, self.delta = self.calc_working_area()
 
         rospy.on_shutdown(self.stop)
+        self.start_time = rospy.get_time()
 
         while not rospy.is_shutdown() and self.flag_stop:
             self.timer = rospy.get_time()
@@ -423,9 +426,9 @@ class ArmController:
         return res
 
     def write_to_csv(self):
-        with open('pwm_position_time.csv', mode='w') as log_file:
-            logger = csv.writer(lof_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            logger.writerow([self.pwm_temp, self.fb, self.timer])
+        with open('pwm_position_time.csv', mode='a') as log_file:
+            logger = csv.writer(log_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            logger.writerow(np.concatenate((self.pwm_temp, self.fb, round(self.timer - self.start_time, 2)), axis=None))
 
 if __name__ == '__main__':
     try:
