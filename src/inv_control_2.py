@@ -65,6 +65,7 @@ class ArmController:
     old_fb = np.zeros((motor_con,), dtype=np.int32)
     error = np.zeros((motor_con,), dtype=np.int32)
     error_sum = np.zeros((motor_con,), dtype=np.int32)
+    error_derivative = np.zeros((motor_con,), dtype=np.int32)
     sync_errors = np.zeros((motor_con,), dtype=np.int32)
 
     velocityCurrent = np.zeros((motor_con,), dtype=np.int32)
@@ -81,6 +82,7 @@ class ArmController:
     timer = 0
     check_time_start = 0
     max_time = 3.0
+    MAX_SYNC_ERROR = 5
     MAX_ARM = 100
     MAX_BUK = 100
 
@@ -117,6 +119,9 @@ class ArmController:
                           + str(np.round(self.pwm_temp, 2)) + " errors: " + str(np.round(self.error, 2))
                           + " sync_errors: " + str(np.round(self.sync_errors, 2)))
 
+            # For safety reason prevent for sending PWM to the small motor, To remove after testing.
+            self.pwm_temp[2:] = 0
+
             self.safety_checks()
             velocity_to_pub.data = self.velocityCurrent.tolist()
             pwm_to_pub.data = self.pwm_temp.tolist()
@@ -126,7 +131,10 @@ class ArmController:
             self.rate.sleep()
 
     def compute_position_errors(self):
-        self.error = self.des_cmd - self.fb  # Compute Error Position
+        dt = 1 / 50
+        new_error = self.des_cmd - self.fb  # Compute Error Position
+        self.error_derivative = (new_error - self.error) / dt
+        self.error = new_error
         self.error_sum += self.error  # Sum Position Error
         # Constrain Error
         self.error_sum = np.where(abs(self.error_sum) < limit, self.error_sum, np.sign(self.error_sum) * limit)
@@ -135,23 +143,18 @@ class ArmController:
     def PID_Position(self):
         kp_ac = 20
         ki_ac = .1
+        kd_ac = 1
         kp_sc = 10
         ki_sc = .2
+        kd_sc = 1
         kp_s_sc = 1
 
         pwm_temp = np.zeros((motor_con,), dtype=np.int32)
-        pwm_temp[0] = kp_sc * self.error[0] + ki_sc * self.error_sum[0] + kp_s_sc * self.sync_errors[0]
-        pwm_temp[1] = kp_sc * self.error[1] + ki_sc * self.error_sum[1] + kp_s_sc * self.sync_errors[1]
-        pwm_temp[2] = kp_ac * self.error[2] + ki_ac * self.error_sum[2]
-        pwm_temp[3] = kp_ac * self.error[3] + ki_ac * self.error_sum[3]
-
-        # Map potentiometer values to pwm
-        sc_potentiometer_value_limit = (780 - 300) * kp_sc + limit * ki_sc
-        ac_potentiometer_value_limit = (450 - 10) * kp_ac + limit * ki_ac
-        pwm_temp[:2] = self.map_range([-sc_potentiometer_value_limit, sc_potentiometer_value_limit], [-255, 255], pwm_temp[:2])
-        pwm_temp[2:] = self.map_range([-ac_potentiometer_value_limit, ac_potentiometer_value_limit], [-255, 255], pwm_temp[2:])
-        pwm_temp = np.clip(pwm_temp, -255, 255)
-        #pwm_temp = np.where(abs(pwm_temp) < minPWM, 0, pwm_temp)
+        pwm_temp[:2] = kp_sc * self.error[:2] + ki_sc * self.error_sum[:2] + kd_sc * self.error_derivative[:2]
+        pwm_temp[2:] = kp_ac * self.error[2:] + ki_ac * self.error_sum[2:] + kd_ac * self.error_derivative[2:]
+        pwm_temp = self.map_range([-1000, 1000], [-255, 255], pwm_temp, True)
+        # Add sync error after map and clip in order to always allow to slow down the nearest motor.
+        pwm_temp[:2] += kp_s_sc * self.sync_errors[:2]
         return pwm_temp
 
     def max_pwm_position_control(self):
@@ -263,6 +266,9 @@ class ArmController:
             self.raw_force = self.old_raw_force
 
     def safety_checks(self):
+        if not np.all(self.sync_errors < self.MAX_SYNC_ERROR):
+            self.stop('Max sync error exceed!')
+            return
 
         if (self.current[0] > 2 or self.current[1] > 2) and self.flag:
             self.flag = 0
@@ -408,9 +414,12 @@ class ArmController:
         return (1.092 * x - 171)
 
     @staticmethod
-    def map_range(a, b, s):
+    def map_range(a, b, s, to_clip=False):
         (a1, a2), (b1, b2) = a, b
-        return b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
+        res = b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
+        if to_clip:
+            return np.clip(res, [b1, b2])
+        return res
 
 
 if __name__ == '__main__':
