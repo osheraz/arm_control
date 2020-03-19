@@ -158,6 +158,7 @@ class ArmController:
         return pwm_temp
 
     def max_pwm_position_control(self):
+        self.write_to_csv()
         kp = 10
         pwm = 255 * np.sign(self.error) + kp * self.sync_errors
         return np.clip(pwm, -255, 255)
@@ -421,6 +422,10 @@ class ArmController:
             return np.clip(res, [b1, b2])
         return res
 
+    def write_to_csv(self):
+        with open('pwm_position_time.csv', mode='w') as log_file:
+            logger = csv.writer(lof_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            logger.writerow([self.pwm_temp, self.fb, self.timer])
 
 if __name__ == '__main__':
     try:
